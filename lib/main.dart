@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:universal_html/html.dart' as html;
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,9 +18,9 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.lightGreen,
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.green, 
-          foregroundColor: Colors.white, 
-          elevation: 4, 
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          elevation: 4,
         ),
       ),
       home: const SearchScreen(),
@@ -39,7 +39,6 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   List<Map<String, dynamic>> _products = [];
 
- 
   Future<void> _search(String query) async {
     try {
       final url = Uri.parse('http://localhost:8000/api/search/$query');
@@ -53,26 +52,30 @@ class _SearchScreenState extends State<SearchScreen> {
       } else {
         setState(() {
           _products = [
-            {'title': 'Error: ${response.statusCode}', 'price': 0.0, 'image': '', 'location': ''}
+            {'title': 'Error: ${response.statusCode}', 'price': 0.0, 'image': '', 'location': ''},
           ];
         });
       }
     } catch (e) {
       setState(() {
         _products = [
-          {'title': 'Error: $e', 'price': 0.0, 'image': '', 'location': ''}
+          {'title': 'Error: $e', 'price': 0.0, 'image': '', 'location': ''},
         ];
       });
     }
   }
 
-  void _launchUrl(String url) {
-    print('Intentando abrir URL: $url'); 
+  // Nueva función para abrir URLs con url_launcher
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
     try {
-      html.window.open(url, '_blank');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Abriendo $url')),
-      );
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication); // O puedes usar LaunchMode.inAppWebView
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se puede abrir el enlace')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al abrir enlace: $e')),
@@ -122,13 +125,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       itemCount: _products.length,
                       itemBuilder: (context, index) {
                         final product = _products[index];
+                        String imageUrl = product['image'] ?? '';
                         return Card(
                           elevation: 4,
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           child: InkWell(
                             onTap: () {
                               if (product['link'] != null) {
-                                _launchUrl(product['link']);
+                                _launchUrl(product['link']);  // Usamos la nueva función _launchUrl
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('No hay enlace disponible')),
@@ -139,11 +143,26 @@ class _SearchScreenState extends State<SearchScreen> {
                               padding: const EdgeInsets.all(8.0),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.shopping_bag,
-                                    size: 80,
-                                    color: Colors.grey,
-                                  ),
+                                  // Verificamos si la URL de la imagen es válida antes de cargarla
+                                  imageUrl.isNotEmpty
+                                      ? Image.network(
+                                          imageUrl,
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.image_not_supported,
+                                              size: 80,
+                                              color: Colors.grey,
+                                            );
+                                          },
+                                        )
+                                      : const Icon(
+                                          Icons.shopping_bag,
+                                          size: 80,
+                                          color: Colors.grey,
+                                        ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
@@ -183,3 +202,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
+
+
+
+
