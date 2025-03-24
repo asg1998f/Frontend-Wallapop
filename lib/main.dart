@@ -46,6 +46,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('Respuesta del backend: $data'); 
         setState(() {
           _products = List<Map<String, dynamic>>.from(data['products']);
         });
@@ -64,13 +65,11 @@ class _SearchScreenState extends State<SearchScreen> {
       });
     }
   }
-
-  // Nueva función para abrir URLs con url_launcher
   Future<void> _launchUrl(String url) async {
     final Uri uri = Uri.parse(url);
     try {
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication); // O puedes usar LaunchMode.inAppWebView
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se puede abrir el enlace')),
@@ -90,7 +89,7 @@ class _SearchScreenState extends State<SearchScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Image.asset(
-            'assets/images/logo.jpg', 
+            'assets/images/logo.jpg',
             fit: BoxFit.contain,
           ),
         ),
@@ -125,15 +124,19 @@ class _SearchScreenState extends State<SearchScreen> {
                       itemCount: _products.length,
                       itemBuilder: (context, index) {
                         final product = _products[index];
+                        print('Producto en ListView: $product'); 
                         String imageUrl = product['image'] ?? '';
                         return Card(
                           elevation: 4,
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           child: InkWell(
                             onTap: () {
+                              print('onTap activado para el producto: ${product['title']}'); 
                               if (product['link'] != null) {
-                                _launchUrl(product['link']);  // Usamos la nueva función _launchUrl
+                                print('Abriendo enlace: ${product['link']}'); 
+                                _launchUrl(product['link']);
                               } else {
+                                print('Enlace no disponible para el producto: ${product['title']}'); 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('No hay enlace disponible')),
                                 );
@@ -143,14 +146,14 @@ class _SearchScreenState extends State<SearchScreen> {
                               padding: const EdgeInsets.all(8.0),
                               child: Row(
                                 children: [
-                                  // Verificamos si la URL de la imagen es válida antes de cargarla
                                   imageUrl.isNotEmpty
                                       ? Image.network(
-                                          imageUrl,
+                                          'http://localhost:8000/api/image/${imageUrl.replaceFirst("https://cdn.wallapop.com/", "")}',
                                           width: 80,
                                           height: 80,
                                           fit: BoxFit.cover,
                                           errorBuilder: (context, error, stackTrace) {
+                                            print('Error loading image: $error');
                                             return const Icon(
                                               Icons.image_not_supported,
                                               size: 80,
@@ -202,7 +205,3 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
-
-
-
-
